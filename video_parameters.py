@@ -1,0 +1,98 @@
+import cv2
+import numpy as np
+
+def get_video_properties(video_path):
+    """
+    Анализ базовых параметров видео
+    """
+    cap = cv2.VideoCapture(video_path)
+    
+    if not cap.isOpened():
+        print("Ошибка открытия видео")
+        return None
+    
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    duration = frame_count / fps if fps > 0 else 0
+    
+    fourcc_code = int(cap.get(cv2.CAP_PROP_FOURCC))
+    codec = "".join([chr((fourcc_code >> 8 * i) & 0xFF) for i in range(4)])
+    
+    cap.release()
+    
+    return {
+        'fps': fps,
+        'frame_count': frame_count,
+        'resolution': (width, height),
+        'duration_sec': duration,
+        'codec_fourcc': codec
+    }
+
+
+
+def calculate_motion_intensity(video_path, sample_frames):
+    """
+    Определение интенсивности движения в видео
+    """
+    cap = cv2.VideoCapture(video_path)
+    prev_frame = None
+    motion_values = []
+    
+    frame_interval = max(1, int(cap.get(cv2.CAP_PROP_FRAME_COUNT) / sample_frames))
+    
+    for i in range(sample_frames):
+        ret, frame = cap.read()
+        if not ret:
+            break
+            
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i * frame_interval)
+        
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        
+        if prev_frame is not None:
+            diff = cv2.absdiff(prev_frame, gray)
+            motion = np.mean(diff)
+            motion_values.append(motion)
+        
+        prev_frame = gray
+    
+    cap.release()
+    
+    if not motion_values:
+        return 0
+    
+    avg_motion = np.mean(motion_values)
+    
+
+    if avg_motion < 5:
+        intensity_level = "Очень низкая"
+    elif avg_motion < 15:
+        intensity_level = "Низкая"
+    elif avg_motion < 30:
+        intensity_level = "Средняя"
+    elif avg_motion < 50:
+        intensity_level = "Высокая"
+    else:
+        intensity_level = "Очень высокая"
+    
+    return {
+        'raw_intensity': avg_motion,
+        'intensity_level': intensity_level,
+        'max_motion': np.max(motion_values),
+        'std_motion': np.std(motion_values)
+    }
+
+
+video_path = r"videos/cars_moving.mp4"
+
+props_video = get_video_properties(video_path)  
+print(f"FPS: {props_video['fps']}")
+print(f"Общее количество кадров: {props_video['frame_count']}")
+
+intensity_video = calculate_motion_intensity(video_path, props_video['frame_count'] // 10)
+print(f"Средняя интенсивность: {intensity_video['raw_intensity']}, уровень интенсивности: {intensity_video['intensity_level']}")
+print(f"Разрешение: {props_video['resolution']}")
+print(f"Длительность: {props_video['duration_sec']:.2f} сек")
+print(f"Кодек (FourCC): {props_video['codec_fourcc']}")
