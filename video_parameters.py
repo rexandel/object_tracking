@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import os
 
 def get_video_properties(video_path):
     """
@@ -18,8 +19,8 @@ def get_video_properties(video_path):
     duration = frame_count / fps if fps > 0 else 0
     
     fourcc_code = int(cap.get(cv2.CAP_PROP_FOURCC))
-    codec = "".join([chr((fourcc_code >> 8 * i) & 0xFF) for i in range(4)])
-    
+    codec = fourcc_code.to_bytes(4, 'little').decode('ascii')
+
     cap.release()
     
     return {
@@ -29,7 +30,6 @@ def get_video_properties(video_path):
         'duration_sec': duration,
         'codec_fourcc': codec
     }
-
 
 
 def calculate_motion_intensity(video_path, sample_frames):
@@ -84,15 +84,42 @@ def calculate_motion_intensity(video_path, sample_frames):
         'std_motion': np.std(motion_values)
     }
 
+def get_video_files(folder_path):
+    """
+    Получает список всех видеофайлов в папке
+    """
+    video_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v']
+    video_files = []
+    
+    for file in os.listdir(folder_path):
+        if any(file.lower().endswith(ext) for ext in video_extensions):
+            video_files.append(os.path.join(folder_path, file))
+    
+    return video_files
 
-video_path = r"videos/cars_moving.mp4"
 
-props_video = get_video_properties(video_path)  
-print(f"FPS: {props_video['fps']}")
-print(f"Общее количество кадров: {props_video['frame_count']}")
+def main():
+    video_files = get_video_files(r"videos")
+    
+    print(f"Найдено видеофайлов: {len(video_files)}\n")
+    
+    for i, video_path in enumerate(video_files, 1):
+        print(f"=== Видео {i}/{len(video_files)}: {os.path.basename(video_path)} ===")
+        
+        props_video = get_video_properties(video_path)
+        if props_video is None:
+            print("Ошибка: не удалось открыть видеофайл\n")
+            continue
+        
+        print(f"FPS: {props_video['fps']}")
+        print(f"Общее количество кадров: {props_video['frame_count']}")
+        intensity_video = calculate_motion_intensity(video_path, props_video['frame_count'] // 10)
+        
+        print(f"Средняя интенсивность: {intensity_video['raw_intensity']:.2f}, уровень интенсивности: {intensity_video['intensity_level']}")
+        print(f"Разрешение: {props_video['resolution']}")
+        print(f"Длительность: {props_video['duration_sec']:.2f} сек")
+        print(f"Кодек: {props_video['codec_fourcc']}")
+        print()
 
-intensity_video = calculate_motion_intensity(video_path, props_video['frame_count'] // 10)
-print(f"Средняя интенсивность: {intensity_video['raw_intensity']}, уровень интенсивности: {intensity_video['intensity_level']}")
-print(f"Разрешение: {props_video['resolution']}")
-print(f"Длительность: {props_video['duration_sec']:.2f} сек")
-print(f"Кодек (FourCC): {props_video['codec_fourcc']}")
+if __name__ == "__main__":
+    main()
