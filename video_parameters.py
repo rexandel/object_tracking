@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+from video_file_manager import VideoFileManager
 
 def get_video_properties(video_path):
     """
@@ -84,22 +85,9 @@ def calculate_motion_intensity(video_path, sample_frames):
         'std_motion': np.std(motion_values)
     }
 
-def get_video_files(folder_path):
-    """
-    Получает список всех видеофайлов в папке
-    """
-    video_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v']
-    video_files = []
-    
-    for file in os.listdir(folder_path):
-        if any(file.lower().endswith(ext) for ext in video_extensions):
-            video_files.append(os.path.join(folder_path, file))
-    
-    return video_files
-
 
 def main():
-    video_files = get_video_files(r"videos")
+    video_files = VideoFileManager.get_video_files(r"videos")
     
     print(f"Найдено видеофайлов: {len(video_files)}\n")
     
@@ -120,6 +108,7 @@ def main():
         print(f"Длительность: {props_video['duration_sec']:.2f} сек")
         print(f"Кодек: {props_video['codec_fourcc']}")
         print()
+
 
 if __name__ == "__main__":
     main()
