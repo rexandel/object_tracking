@@ -80,7 +80,7 @@ def subwindow(img, window, borderType=cv2.BORDER_CONSTANT):
 	return res
 
 
-class KCFTracker:
+class KCFTrackerHomemade:
 	def __init__(self):
 		self.lambdar = 0.0001
 		self.padding = 2.5
