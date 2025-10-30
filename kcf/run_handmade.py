@@ -1,12 +1,13 @@
 import cv2
 import sys
 from time import time
+import kcf_tracker
 
-import kcftracker
 
 ix, iy, cx, cy = -1, -1, -1, -1
 w, h = 0, 0
 mouse_pressed = False
+
 
 def draw_boundingbox(event, x, y, flags, param):
     global ix, iy, cx, cy, w, h, mouse_pressed
@@ -25,6 +26,7 @@ def draw_boundingbox(event, x, y, flags, param):
         if abs(x-ix) > 10 and abs(y-iy) > 10:
             w, h = abs(x - ix), abs(y - iy)
             ix, iy = min(x, ix), min(y, iy)
+
 
 if __name__ == '__main__':
     
@@ -79,7 +81,7 @@ if __name__ == '__main__':
             if key == ord(' '):
                 if w > 0 and h > 0:
                     paused = False
-                    tracker = kcftracker.KCFTracker()
+                    tracker = kcf_tracker.KCFTracker()
                     ix_int, iy_int, w_int, h_int = int(ix), int(iy), int(w), int(h)
                     tracker.init([ix_int, iy_int, w_int, h_int], frame)
             elif key == 27 or key == ord('q'):

@@ -7,6 +7,7 @@ ix, iy, cx, cy = -1, -1, -1, -1
 w, h = 0, 0
 mouse_pressed = False
 
+
 def draw_boundingbox(event, x, y, flags, param):
     global ix, iy, cx, cy, w, h, mouse_pressed
     
@@ -24,6 +25,7 @@ def draw_boundingbox(event, x, y, flags, param):
         if abs(x-ix) > 10 and abs(y-iy) > 10:
             w, h = abs(x - ix), abs(y - iy)
             ix, iy = min(x, ix), min(y, iy)
+
 
 if __name__ == '__main__':
     
