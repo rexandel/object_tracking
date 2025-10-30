@@ -3,10 +3,8 @@ import numpy as np
 import os
 from video_file_manager import VideoFileManager
 
+
 def get_video_properties(video_path):
-    """
-    Анализ базовых параметров видео
-    """
     cap = cv2.VideoCapture(video_path)
     
     if not cap.isOpened():
@@ -34,9 +32,6 @@ def get_video_properties(video_path):
 
 
 def calculate_motion_intensity(video_path, sample_frames):
-    """
-    Определение интенсивности движения в видео
-    """
     cap = cv2.VideoCapture(video_path)
     prev_frame = None
     motion_values = []
@@ -68,15 +63,15 @@ def calculate_motion_intensity(video_path, sample_frames):
     
 
     if avg_motion < 5:
-        intensity_level = "Очень низкая"
+        intensity_level = "очень низкий"
     elif avg_motion < 15:
-        intensity_level = "Низкая"
+        intensity_level = "низкий"
     elif avg_motion < 30:
-        intensity_level = "Средняя"
+        intensity_level = "средний"
     elif avg_motion < 50:
-        intensity_level = "Высокая"
+        intensity_level = "высокий"
     else:
-        intensity_level = "Очень высокая"
+        intensity_level = "очень высокий"
     
     return {
         'raw_intensity': avg_motion,
@@ -99,7 +94,7 @@ def main():
             print("Ошибка: не удалось открыть видеофайл\n")
             continue
         
-        print(f"FPS: {props_video['fps']}")
+        print(f"FPS: {props_video['fps']:.2f}")
         print(f"Общее количество кадров: {props_video['frame_count']}")
         intensity_video = calculate_motion_intensity(video_path, props_video['frame_count'] // 10)
         
