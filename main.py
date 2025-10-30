@@ -28,19 +28,20 @@ def main():
         output_dir = VideoFileManager.create_tracker_output_dir(output_base_dir, tracker_name)
         
         for i, video_path in enumerate(video_files, 1):
-            print(f"\nVideo {i}/{len(video_files)}: {os.path.basename(video_path)}")
+            print(f"\nProcessing video {i}/{len(video_files)}: {os.path.basename(video_path)}")
             
             video_info = VideoFileManager.get_video_info(video_path)
             if video_info:
-                print(f"File: {video_info['filename']} ({video_info['size_mb']} MB)")
+                print(f"File: {video_info['filename']}, Size: {video_info['size_mb']} MB")
             
-            video_name = os.path.splitext(os.path.basename(video_path))[0]
-            output_path = os.path.join(output_dir, f"{video_name}_{tracker_name}.avi")
-            
-            tracker.track_from_video(video_path, output_path)
-            
-            print(f"Completed: {os.path.basename(video_path)}")
-        
+            try:
+                output_path = VideoFileManager.save_processed_video(
+                    tracker, video_path, output_dir, tracker_name
+                )
+                print(f"Successfully processed and saved to: {os.path.basename(output_path)}")
+            except Exception as e:
+                print(f"Error processing {os.path.basename(video_path)}: {str(e)}")
+
         print(f"\nCompleted {tracker_name.upper()} tracker processing")
         print(f"Results saved to: {output_dir}")
 

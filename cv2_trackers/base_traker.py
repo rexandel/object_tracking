@@ -1,4 +1,7 @@
 import cv2
+import sys
+import os
+from time import time
 
 
 class BaseTracker:
@@ -7,6 +10,11 @@ class BaseTracker:
         self.is_initialized = False
         self.bbox = None
         self.video_path = video_path
+    
+        self.mouse_pressed = False
+        self.ix, self.iy = -1, -1
+        self.cx, self.cy = -1, -1
+        self.w, self.h = 0, 0
         
     def init(self, frame, bbox):
         self.tracker = self.create_tracker()
@@ -34,60 +42,134 @@ class BaseTracker:
     def create_tracker(self):
         raise NotImplementedError("Subclasses must implement create_tracker method")
 
+    def draw_boundingbox(self, event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            self.mouse_pressed = True
+            self.ix, self.iy = x, y
+            self.cx, self.cy = x, y
+        
+        elif event == cv2.EVENT_MOUSEMOVE:
+            if self.mouse_pressed:
+                self.cx, self.cy = x, y
+        
+        elif event == cv2.EVENT_LBUTTONUP:
+            self.mouse_pressed = False
+            if abs(x - self.ix) > 10 and abs(y - self.iy) > 10:
+                self.w, self.h = abs(x - self.ix), abs(y - self.iy)
+                self.ix, self.iy = min(x, self.ix), min(y, self.iy)
+            else:
+                self.w, self.h = 0, 0
+
     def track_from_video(self, video_path=None, output_path=None):
         if video_path is None:
-            if self.video_path is None:
-                print("No video path specified")
-                return
             video_path = self.video_path
-        
-        self.reset()
-        
+            
         cap = cv2.VideoCapture(video_path)
-        
-        ret, frame = cap.read()
-        if not ret:
-            print(f"Failed to open video: {video_path}")
-            return
-        
-        bbox = cv2.selectROI("Select Object to Track", frame, False)
-        cv2.destroyWindow("Select Object to Track")
-        
-        if not self.init(frame, bbox):
-            print("Failed to initialize tracker")
-            cap.release()
-            return
-        
-        if output_path:
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')
-            fps = cap.get(cv2.CAP_PROP_FPS)
-            out = cv2.VideoWriter(output_path, fourcc, fps, (frame.shape[1], frame.shape[0]))
-        
-        print("Tracker initialized. Press 'q' to exit.")
-        
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            
-            success, bbox = self.update(frame)
+        interval = 30
 
-            if success:
-                x, y, w, h = [int(i) for i in bbox]
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                cv2.putText(frame, "Tracking", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-            else:
-                cv2.putText(frame, "Tracking Lost", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            
-            if output_path:
-                out.write(frame)
-            
-            cv2.imshow(f"{self.__class__.__name__} Tracker", frame)
-            
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                break
+        video_writer = None
+        output_video_path = None
         
+        self.mouse_pressed = False
+        self.ix, self.iy = -1, -1
+        self.cx, self.cy = -1, -1
+        self.w, self.h = 0, 0
+
+        tracker = None
+        cv2.namedWindow('tracking')
+        cv2.setMouseCallback('tracking', lambda event, x, y, flags, param: self.draw_boundingbox(event, x, y, flags, param))
+
+        ret, first_frame = cap.read()
+        if not ret:
+            sys.exit("Failed to read video")
+
+        current_frame = first_frame.copy()
+        tracking_started = False
+
+        while cap.isOpened():
+            if tracking_started:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+            else:
+                frame = current_frame.copy()
+
+            if not tracking_started:
+                display_frame = frame.copy()
+                
+                if self.mouse_pressed:
+                    cv2.rectangle(display_frame, (self.ix, self.iy), (self.cx, self.cy), (0, 255, 0), 2)
+                    
+                elif self.w > 0 and self.h > 0:
+                    ix_int, iy_int, w_int, h_int = int(self.ix), int(self.iy), int(self.w), int(self.h)
+                    cv2.rectangle(display_frame, (ix_int, iy_int), 
+                                (ix_int + w_int, iy_int + h_int), (0, 255, 0), 2)
+                
+                cv2.imshow('tracking', display_frame)
+                
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord(' '):
+                    if self.w > 0 and self.h > 0:
+                        tracking_started = True
+                        ix_int, iy_int, w_int, h_int = int(self.ix), int(self.iy), int(self.w), int(self.h)
+                        bbox = (ix_int, iy_int, w_int, h_int)
+                        self.init(frame, bbox)
+                        tracker = self
+                        
+                        if output_path:
+                            output_video_path = output_path
+                        else:
+                            base_name = os.path.splitext(os.path.basename(video_path))[0]
+                            output_video_path = f"{base_name}_tracked.mp4"
+                        
+                        fps = cap.get(cv2.CAP_PROP_FPS)
+                        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+                        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                        video_writer = cv2.VideoWriter(
+                            output_video_path, 
+                            fourcc, 
+                            fps, 
+                            (frame_width, frame_height)
+                        )
+                        
+                elif key == 27 or key == ord('q'):
+                    break
+                continue
+
+            processed_frame = frame.copy()
+            
+            if tracker is not None:
+                duration = 0.01
+                t0 = time()
+                success, boundingbox = tracker.update(processed_frame)
+                t1 = time()
+
+                if success:
+                    boundingbox = list(map(int, boundingbox))
+                    x, y, w_track, h_track = boundingbox
+                    cv2.rectangle(processed_frame, (x, y), (x + w_track, y + h_track), (0, 255, 0), 2)
+                    
+                    duration = 0.8 * duration + 0.2 * (t1 - t0)
+                    fps = 1 / duration if duration > 0 else 0
+                    cv2.putText(processed_frame, f'FPS: {fps:.1f}', (8, 20), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                else:
+                    cv2.putText(processed_frame, 'Tracking failure detected', (8, 20), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+            if video_writer is not None:
+                video_writer.write(processed_frame)
+
+            cv2.imshow('tracking', processed_frame)
+
+            c = cv2.waitKey(interval) & 0xFF
+            if c == 27 or c == ord('q'):
+                break
+
         cap.release()
-        if output_path:
-            out.release()
+        if video_writer is not None:
+            video_writer.release()
+            print(f"Video saved to: {output_video_path}")
         cv2.destroyAllWindows()
