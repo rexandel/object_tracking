@@ -60,7 +60,7 @@ def process_video_with_homemade_kcf(video_path, output_dir):
     
     video_filename = os.path.basename(video_path)
     name_without_ext = os.path.splitext(video_filename)[0]
-    output_filename = os.path.join(output_dir, f"{name_without_ext}_homemade_kcf.avi")
+    output_filename = os.path.join(output_dir, f"{name_without_ext}_homemade_kcf.mp4")
     
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter(output_filename, fourcc, fps, (frame_width, frame_height))
