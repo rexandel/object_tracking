@@ -53,6 +53,7 @@
 ### Использование собственной реализации KCF
 
 <div style="white-space: nowrap;">
+  <img src="https://github.com/user-attachments/assets/9f4c90a6-748a-42d1-9fe0-668f1e580a04" width="300" style="display: inline-block;">
   <img src="https://github.com/user-attachments/assets/84d92089-ad62-4a35-b52b-4c778887d186" width="300" style="display: inline-block;">
   <img src="https://github.com/user-attachments/assets/aba96230-6f2f-4aae-9cca-0540c34c4e05" width="300" style="display: inline-block;">
   <img src="https://github.com/user-attachments/assets/9dc2ee8e-a614-49d3-9935-96f92b4d5620" width="300" style="display: inline-block;">
